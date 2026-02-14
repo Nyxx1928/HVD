@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import Squares from '@/components/Squares';
+import NoteComments from '@/components/NoteComments';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 const emojiOptions = ['💗', '💘', '💝', '🌹', '✨'];
@@ -154,7 +155,7 @@ export default function LoveWall() {
         <div className="absolute inset-0 bg-gradient-to-b from-rose-50/80 via-white/70 to-white/90 dark:from-[#120a1a]/85 dark:via-[#0f0a14]/70 dark:to-[#0b0710]/90" />
       </div>
 
-      <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-16">
+      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-16">
         <motion.div
           className="flex flex-col gap-4 text-center"
           initial={{ opacity: 0, y: 16 }}
@@ -196,7 +197,7 @@ export default function LoveWall() {
           <form
             id="love-note-form"
             onSubmit={handleSubmit}
-            className="flex flex-col gap-6 rounded-[2rem] border border-white/60 bg-white/80 p-8 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.4)] backdrop-blur dark:border-white/10 dark:bg-white/5"
+            className="scroll-mt-32 flex flex-col gap-6 rounded-[2rem] border border-white/60 bg-white/80 p-8 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.4)] backdrop-blur dark:border-white/10 dark:bg-white/5"
           >
             <div className="flex flex-col gap-2">
               <label className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500 dark:text-zinc-400">
@@ -294,18 +295,7 @@ export default function LoveWall() {
             </button>
           </form>
 
-          <motion.div
-            className="flex flex-col gap-6"
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, amount: 0.2 }}
-            variants={{
-              hidden: {},
-              show: {
-                transition: { staggerChildren: 0.08 }
-              }
-            }}
-          >
+          <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500 dark:text-zinc-400">
               <span>Live wall</span>
               <span className="text-xs tracking-[0.2em]">
@@ -313,7 +303,7 @@ export default function LoveWall() {
               </span>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div id="love-notes" className="grid gap-4 auto-rows-max sm:grid-cols-2 lg:grid-cols-4">
               {loading ? (
                 <div className="col-span-full rounded-[2rem] border border-dashed border-zinc-300 bg-white/60 p-8 text-center text-sm text-zinc-500 dark:border-white/20 dark:bg-white/5 dark:text-zinc-300">
                   Gathering the love notes...
@@ -323,42 +313,45 @@ export default function LoveWall() {
                   Be the first to add a message.
                 </div>
               ) : (
-                notes.map(note => (
-                  <motion.article
-                    key={note.id}
-                    className={`flex h-full flex-col gap-3 rounded-[2rem] border border-white/60 p-6 shadow-[0_18px_50px_-40px_rgba(15,23,42,0.35)] ${
-                      cardColorStyles[note.color] ?? 'bg-white/80 dark:bg-white/5'
-                    } ${note.id === recentId ? 'love-note-enter' : ''}`}
-                    variants={{
-                      hidden: { opacity: 0, y: 12 },
-                      show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } }
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`flex h-10 w-10 items-center justify-center rounded-2xl text-lg text-white ${
-                          colorStyles[note.color] ?? 'bg-rose-500'
-                        }`}
-                      >
-                        {note.emoji}
-                      </span>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-                          {note.name}
+                notes.map((note, index) => {
+                  const isBig = index % 5 === 0;
+                  const isMedium = index % 5 === 1 || index % 5 === 2;
+                  return (
+                    <article
+                      key={note.id}
+                      className={`relative flex flex-col gap-3 rounded-[2rem] border border-white/60 p-6 shadow-[0_18px_50px_-40px_rgba(15,23,42,0.35)] ${
+                        cardColorStyles[note.color] ?? 'bg-white/80 dark:bg-white/5'
+                      } ${note.id === recentId ? 'love-note-enter' : ''} ${
+                        isBig ? 'sm:col-span-2 sm:row-span-2' : isMedium ? 'sm:row-span-1' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span
+                          className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl text-lg bg-white/90 dark:bg-white/10"
+                        >
+                          {note.emoji}
                         </span>
-                        <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                          {new Date(note.created_at).toLocaleString()}
-                        </span>
+                        <div className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                            {note.name}
+                          </span>
+                          <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                            {new Date(note.created_at).toLocaleString()}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-200">
-                      {note.message}
-                    </p>
-                  </motion.article>
-                ))
+                      <p className={`text-zinc-700 dark:text-zinc-200 ${
+                        isBig ? 'text-base line-clamp-none' : 'text-sm line-clamp-3'
+                      } leading-relaxed`}>
+                        {note.message}
+                      </p>
+                      <NoteComments noteId={note.id} isExpanded={false} />
+                    </article>
+                  );
+                })
               )}
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>

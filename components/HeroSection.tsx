@@ -53,13 +53,13 @@ export default function HeroSection() {
           transition={{ duration: 0.85, ease: 'easeOut' }}
         >
           <a
-            href="#love-note-form"
+            href="#love-wall"
             className="rounded-full bg-zinc-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
           >
             Leave a love note
           </a>
           <a
-            href="#love-wall"
+            href="#love-notes"
             className="rounded-full border border-zinc-300 px-6 py-3 text-sm font-semibold text-zinc-700 transition hover:border-zinc-400 dark:border-white/30 dark:text-zinc-100 dark:hover:border-white/60"
           >
             Read the love wall
