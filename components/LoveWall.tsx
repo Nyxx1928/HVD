@@ -1,5 +1,7 @@
 'use client';
 
+import { motion } from 'framer-motion';
+import Squares from '@/components/Squares';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 const emojiOptions = ['💗', '💘', '💝', '🌹', '✨'];
@@ -138,26 +140,57 @@ export default function LoveWall() {
   return (
     <section
       id="love-wall"
-      className="relative overflow-hidden bg-gradient-to-b from-rose-50 via-pink-50 to-white px-6 py-24 text-zinc-900 dark:from-[#1a0b14] dark:via-[#14080f] dark:to-black dark:text-zinc-50"
+      className="relative overflow-hidden bg-[#fbf7fb] px-6 py-24 text-zinc-900 dark:bg-[#0f0a14] dark:text-zinc-50"
     >
-      <div className="pointer-events-none absolute inset-0 opacity-60">
-        <div className="absolute left-1/2 top-[-6rem] h-48 w-[32rem] -translate-x-1/2 rounded-full bg-rose-200 blur-[120px] dark:bg-rose-500/30" />
-        <div className="absolute right-[-6rem] top-20 h-40 w-56 rotate-12 rounded-[60%] bg-pink-200 blur-[100px] dark:bg-pink-500/20" />
+      <div className="pointer-events-none absolute inset-0">
+        <Squares
+          speed={0.5}
+          squareSize={40}
+          direction="diagonal"
+          borderColor="#271E37"
+          hoverFillColor="#222222"
+          className="h-full w-full opacity-60"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-rose-50/80 via-white/70 to-white/90 dark:from-[#120a1a]/85 dark:via-[#0f0a14]/70 dark:to-[#0b0710]/90" />
       </div>
 
       <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-16">
-        <div className="flex flex-col gap-4 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.4em] text-rose-500/80 dark:text-rose-300/80">
+        <motion.div
+          className="flex flex-col gap-4 text-center"
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.6 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+        >
+          <motion.p
+            className="text-xs font-semibold uppercase tracking-[0.4em] text-rose-500/80 dark:text-rose-300/80"
+            initial={{ opacity: 0, y: 8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.6 }}
+            transition={{ duration: 0.5, ease: 'easeOut', delay: 0.05 }}
+          >
             Digital Love Wall
-          </p>
-          <h2 className="text-balance text-3xl font-semibold sm:text-4xl">
+          </motion.p>
+          <motion.h2
+            className="text-balance text-3xl font-semibold sm:text-4xl"
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.6 }}
+            transition={{ duration: 0.6, ease: 'easeOut', delay: 0.1 }}
+          >
             Leave a note. Lift the room.
-          </h2>
-          <p className="mx-auto max-w-2xl text-pretty text-base text-zinc-600 dark:text-zinc-300">
+          </motion.h2>
+          <motion.p
+            className="mx-auto max-w-2xl text-pretty text-base text-zinc-600 dark:text-zinc-300"
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.6 }}
+            transition={{ duration: 0.6, ease: 'easeOut', delay: 0.15 }}
+          >
             Share a short message and watch the wall fill with sweet moments. Everything posts
             instantly, so keep it kind.
-          </p>
-        </div>
+          </motion.p>
+        </motion.div>
 
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr),minmax(0,1.1fr)]">
           <form
@@ -261,7 +294,18 @@ export default function LoveWall() {
             </button>
           </form>
 
-          <div className="flex flex-col gap-6">
+          <motion.div
+            className="flex flex-col gap-6"
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.2 }}
+            variants={{
+              hidden: {},
+              show: {
+                transition: { staggerChildren: 0.08 }
+              }
+            }}
+          >
             <div className="flex items-center justify-between text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500 dark:text-zinc-400">
               <span>Live wall</span>
               <span className="text-xs tracking-[0.2em]">
@@ -280,11 +324,15 @@ export default function LoveWall() {
                 </div>
               ) : (
                 notes.map(note => (
-                  <article
+                  <motion.article
                     key={note.id}
                     className={`flex h-full flex-col gap-3 rounded-[2rem] border border-white/60 p-6 shadow-[0_18px_50px_-40px_rgba(15,23,42,0.35)] ${
                       cardColorStyles[note.color] ?? 'bg-white/80 dark:bg-white/5'
                     } ${note.id === recentId ? 'love-note-enter' : ''}`}
+                    variants={{
+                      hidden: { opacity: 0, y: 12 },
+                      show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } }
+                    }}
                   >
                     <div className="flex items-center gap-3">
                       <span
@@ -306,11 +354,11 @@ export default function LoveWall() {
                     <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-200">
                       {note.message}
                     </p>
-                  </article>
+                  </motion.article>
                 ))
               )}
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </section>
