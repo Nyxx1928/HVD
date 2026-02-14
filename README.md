@@ -79,6 +79,7 @@ CREATE POLICY "Enable insert access for all users" ON comments
 ### 5. Configure Environment Variables
 
 1. Copy the example environment file:
+
    ```bash
    cp .env.example .env.local
    ```
