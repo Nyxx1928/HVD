@@ -18,12 +18,10 @@ export default function NoteComments({ noteId, isExpanded }: { noteId: string; i
   const [commentError, setCommentError] = useState<string | null>(null);
   const [showComments, setShowComments] = useState(false);
 
+  // Load comments on mount to get accurate count
   useEffect(() => {
-    if (!showComments) return;
-
     let active = true;
     const loadComments = async () => {
-      setLoadingComments(true);
       try {
         const response = await fetch(`/api/love-wall/${noteId}/comments`, { cache: 'no-store' });
         if (!response.ok) {
@@ -37,10 +35,6 @@ export default function NoteComments({ noteId, isExpanded }: { noteId: string; i
         if (active) {
           setCommentError(err instanceof Error ? err.message : 'Something went wrong.');
         }
-      } finally {
-        if (active) {
-          setLoadingComments(false);
-        }
       }
     };
 
@@ -48,7 +42,13 @@ export default function NoteComments({ noteId, isExpanded }: { noteId: string; i
     return () => {
       active = false;
     };
-  }, [noteId, showComments]);
+  }, [noteId]);
+
+  // Show loading state when expanding
+  useEffect(() => {
+    if (!showComments) return;
+    setLoadingComments(false);
+  }, [showComments]);
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
