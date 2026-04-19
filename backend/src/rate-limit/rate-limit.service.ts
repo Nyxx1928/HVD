@@ -12,19 +12,17 @@ export class RateLimitService {
 
   /**
    * Checks if a request from the given IP is allowed based on rate limit rules.
-   * 
+   *
    * @param ip - The client IP address
    * @param maxRequests - Maximum number of requests allowed in the time window
-   * @param windowMs - Time window in milliseconds
    * @returns RateLimitResult indicating if request is allowed and retry time if blocked
    */
   async checkRateLimit(
     ip: string,
     maxRequests: number,
-    windowMs: number,
   ): Promise<RateLimitResult> {
     const now = new Date();
-    
+
     // Find existing rate limit record for this IP
     const rateLimit = await this.prisma.rateLimit.findUnique({
       where: { ip },
@@ -47,19 +45,21 @@ export class RateLimitService {
     }
 
     // Rate limit exceeded, calculate retry time
-    const retryAfter = Math.ceil((rateLimit.reset_at.getTime() - now.getTime()) / 1000);
+    const retryAfter = Math.ceil(
+      (rateLimit.reset_at.getTime() - now.getTime()) / 1000,
+    );
     return { allowed: false, retryAfter };
   }
 
   /**
    * Atomically increments the request count for the given IP.
    * If the rate limit window has expired, resets the count first.
-   * 
+   *
    * @param ip - The client IP address
    */
   async incrementCount(ip: string): Promise<void> {
     const now = new Date();
-    
+
     const rateLimit = await this.prisma.rateLimit.findUnique({
       where: { ip },
     });
@@ -80,7 +80,7 @@ export class RateLimitService {
   /**
    * Creates or updates a rate limit record with a new reset timestamp.
    * Sets the count to 1 for a fresh window.
-   * 
+   *
    * @param ip - The client IP address
    * @param windowMs - Time window in milliseconds
    */
@@ -107,7 +107,7 @@ export class RateLimitService {
    */
   async cleanupExpiredLimits(): Promise<void> {
     const now = new Date();
-    
+
     await this.prisma.rateLimit.deleteMany({
       where: {
         reset_at: {

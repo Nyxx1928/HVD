@@ -22,7 +22,7 @@ export class RateLimitGuard implements CanActivate {
 
   /**
    * Determines if a request should be allowed based on rate limiting rules.
-   * 
+   *
    * @param context - The execution context containing request details
    * @returns true if request is allowed, throws HttpException if rate limited
    */
@@ -37,11 +37,7 @@ export class RateLimitGuard implements CanActivate {
     const { maxRequests, windowMs } = this.getRateLimitConfig(request.path);
 
     // Check if request is allowed
-    const result = await this.rateLimitService.checkRateLimit(
-      ip,
-      maxRequests,
-      windowMs,
-    );
+    const result = await this.rateLimitService.checkRateLimit(ip, maxRequests);
 
     if (!result.allowed) {
       // Rate limit exceeded - set Retry-After header and throw 429
@@ -73,7 +69,7 @@ export class RateLimitGuard implements CanActivate {
   /**
    * Extracts the client IP address from request headers.
    * Checks x-forwarded-for (proxy/load balancer) first, then x-real-ip, then falls back to 'unknown'.
-   * 
+   *
    * @param request - The Express request object
    * @returns The client IP address
    */
@@ -102,7 +98,7 @@ export class RateLimitGuard implements CanActivate {
    * Different endpoints have different rate limits:
    * - /love-notes: 5 requests per 60 seconds
    * - /comments: 10 requests per 60 seconds
-   * 
+   *
    * @param path - The request path
    * @returns Configuration object with maxRequests and windowMs
    */
