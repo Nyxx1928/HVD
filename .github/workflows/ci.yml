@@ -1,0 +1,413 @@
+name: CI
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  phase1_lint_validate:
+    name: Phase 1 - Lint, validate, and sanitize
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            valentines/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: valentines
+        run: npm ci
+
+      - name: Sanitize - Check for secrets
+        run: |
+          echo "Checking for potential secrets in code..."
+          # Look for actual secret assignments, excluding documentation and test files
+          if grep -r -E "(PASSWORD|SECRET|API_KEY|TOKEN|CREDENTIAL)\s*=\s*['\"][a-zA-Z0-9+/=]{16,}" \
+            --include="*.ts" --include="*.js" --include="*.tsx" --include="*.jsx" \
+            --exclude-dir={node_modules,.git,.next,dist,build,__tests__} \
+            --exclude="*.test.ts" --exclude="*.test.js" --exclude="*.spec.ts" --exclude="*.spec.js" \
+            --exclude="*.md" --exclude="*example*" \
+            backend/ valentines/ 2>/dev/null; then
+            echo "⚠️ Warning: Potential hardcoded secrets found"
+            exit 1
+          fi
+          echo "✓ No hardcoded secrets detected"
+
+      - name: Sanitize - Check for sensitive files
+        run: |
+          echo "Checking for sensitive files..."
+          SENSITIVE_FILES=".env .env.local .env.production id_rsa id_dsa .pem .key"
+          for file in $SENSITIVE_FILES; do
+            if find . -name "$file" -not -path "*/node_modules/*" -not -path "*/.git/*" | grep -q .; then
+              echo "⚠️ Warning: Found sensitive file: $file"
+              exit 1
+            fi
+          done
+          echo "✓ No sensitive files found"
+
+      - name: Sanitize - Validate package integrity
+        run: |
+          echo "Validating package.json files..."
+          find . -name "package.json" -not -path "*/node_modules/*" -exec node -e "try { JSON.parse(require('fs').readFileSync('{}', 'utf8')); } catch(e) { console.error('Invalid JSON in {}'); process.exit(1); }" \;
+          echo "✓ All package.json files are valid"
+
+      - name: Sanitize - Check for unsafe input handling
+        run: |
+          echo "Checking for unsafe input handling patterns..."
+          UNSAFE_PATTERNS=0
+
+          # Check for direct SQL concatenation (SQL injection risk)
+          if grep -r -E "query\(.*\+.*\)" --include="*.ts" --include="*.js" --exclude-dir={node_modules,.git,.next,dist,build} backend/src 2>/dev/null; then
+            echo "⚠️ Warning: Potential SQL injection - use parameterized queries"
+            UNSAFE_PATTERNS=$((UNSAFE_PATTERNS + 1))
+          fi
+
+          # Check for eval usage
+          if grep -r -E "\beval\(" --include="*.ts" --include="*.js" --exclude-dir={node_modules,.git,.next,dist,build} backend/ valentines/ 2>/dev/null; then
+            echo "⚠️ Warning: eval() usage detected - security risk"
+            UNSAFE_PATTERNS=$((UNSAFE_PATTERNS + 1))
+          fi
+
+          # Check for innerHTML without sanitization
+          if grep -r -E "\.innerHTML\s*=" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --exclude-dir={node_modules,.git,.next,dist,build} valentines/ 2>/dev/null; then
+            echo "⚠️ Warning: innerHTML usage detected - XSS risk, use textContent or sanitize"
+            UNSAFE_PATTERNS=$((UNSAFE_PATTERNS + 1))
+          fi
+
+          # Check for dangerouslySetInnerHTML without sanitization
+          if grep -r "dangerouslySetInnerHTML" --include="*.tsx" --include="*.jsx" --exclude-dir={node_modules,.git,.next,dist,build} valentines/ 2>/dev/null | grep -v "DOMPurify\|sanitize"; then
+            echo "⚠️ Warning: dangerouslySetInnerHTML without sanitization - XSS risk"
+            UNSAFE_PATTERNS=$((UNSAFE_PATTERNS + 1))
+          fi
+
+          if [ $UNSAFE_PATTERNS -gt 0 ]; then
+            echo "❌ Found $UNSAFE_PATTERNS unsafe input handling pattern(s)"
+            exit 1
+          fi
+          echo "✓ No unsafe input handling patterns detected"
+
+      - name: Lint backend
+        working-directory: backend
+        run: npm run lint
+
+      - name: Lint frontend
+        working-directory: valentines
+        run: npm run lint
+
+      - name: Typecheck backend
+        working-directory: backend
+        run: npx tsc --noEmit
+
+      - name: Typecheck frontend
+        working-directory: valentines
+        run: npx tsc --noEmit
+
+  phase2_unit_testing:
+    name: Phase 2 - Unit testing
+    runs-on: ubuntu-latest
+    needs: phase1_lint_validate
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run backend unit tests
+        working-directory: backend
+        run: npm test -- --passWithNoTests
+
+  phase3_integration_testing:
+    name: Phase 3 - Integration testing
+    runs-on: ubuntu-latest
+    needs: phase2_unit_testing
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/valentines_test
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: valentines_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run Prisma migrations
+        working-directory: backend
+        run: npx prisma migrate deploy
+
+      - name: Run backend integration tests
+        working-directory: backend
+        run: npm run test:e2e
+
+  phase4_e2e_playwright:
+    name: Phase 4 - E2E (Playwright)
+    runs-on: ubuntu-latest
+    needs: phase3_integration_testing
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/valentines_e2e
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: valentines_e2e
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            valentines/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: valentines
+        run: npm ci
+
+      - name: Validate Playwright setup
+        shell: bash
+        run: |
+          test -f valentines/playwright.config.ts
+          test -d valentines/tests
+
+      - name: Install Playwright browsers
+        working-directory: valentines
+        run: npx playwright install --with-deps
+
+      - name: Run Prisma migrations
+        working-directory: backend
+        run: npx prisma migrate deploy
+
+      - name: Build backend
+        working-directory: backend
+        run: npm run build
+
+      - name: Build frontend
+        working-directory: valentines
+        run: npm run build
+
+      - name: Run Playwright tests
+        working-directory: valentines
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            valentines/playwright-report
+            valentines/test-results
+          if-no-files-found: ignore
+
+  phase5_test_build_docker:
+    name: Phase 5 - Test and build Docker
+    runs-on: ubuntu-latest
+    needs: phase4_e2e_playwright
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate Docker configuration files
+        shell: bash
+        run: |
+          test -f docker-compose.yml
+          test -f backend/Dockerfile
+          test -f valentines/Dockerfile
+
+      - name: Validate Docker Compose
+        run: docker compose config
+
+      - name: Start Docker services
+        run: docker compose up -d
+
+      - name: Verify Docker services are running
+        run: docker compose ps
+
+      - name: Build backend image
+        run: docker build -f backend/Dockerfile -t valentines/backend:ci backend
+
+      - name: Build frontend image
+        run: docker build -f valentines/Dockerfile -t valentines/frontend:ci valentines
+
+      - name: Stop Docker services
+        if: always()
+        run: docker compose down -v
+
+  phase6_security_scan:
+    name: Phase 6 - Security scan
+    runs-on: ubuntu-latest
+    needs: phase5_test_build_docker
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+          syft version
+
+      - name: Generate SBOM (dependencies)
+        run: syft dir:. -o spdx-json=sbom-dependencies.spdx.json
+
+      - name: Install Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          trivy --version
+
+      - name: Trivy vulnerability scan
+        run: |
+          trivy fs --scanners vuln --severity CRITICAL --ignore-unfixed --ignorefile .trivyignore --exit-code 1 .
+          trivy fs --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore --format table --output trivy-report.txt .
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.8.1
+
+      - name: Verify Cosign install
+        run: cosign version
+
+      - name: Cosign authenticator (keyless sign and verify)
+        if: github.event_name == 'push'
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          cosign sign-blob --yes --output-signature sbom.sig --output-certificate sbom.pem sbom-dependencies.spdx.json
+          cosign verify-blob \
+            --certificate sbom.pem \
+            --signature sbom.sig \
+            --certificate-identity-regexp "https://github.com/${GITHUB_REPOSITORY}/.github/workflows/ci.yml@.*" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            sbom-dependencies.spdx.json
+
+      - name: Skip Cosign keyless signing on PR
+        if: github.event_name != 'push'
+        run: echo "Cosign keyless sign/verify runs on push events only."
+
+      - name: Upload security artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-artifacts
+          path: |
+            sbom-dependencies.spdx.json
+            trivy-report.txt
+            sbom.sig
+            sbom.pem
+          if-no-files-found: ignore
+
+  phase7_ci_summary:
+    name: Phase 7 - CI summary
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - phase1_lint_validate
+      - phase2_unit_testing
+      - phase3_integration_testing
+      - phase4_e2e_playwright
+      - phase5_test_build_docker
+      - phase6_security_scan
+    steps:
+      - name: Generate summary
+        env:
+          PHASE1: ${{ needs.phase1_lint_validate.result }}
+          PHASE2: ${{ needs.phase2_unit_testing.result }}
+          PHASE3: ${{ needs.phase3_integration_testing.result }}
+          PHASE4: ${{ needs.phase4_e2e_playwright.result }}
+          PHASE5: ${{ needs.phase5_test_build_docker.result }}
+          PHASE6: ${{ needs.phase6_security_scan.result }}
+        shell: bash
+        run: |
+          {
+            echo "## CI Pipeline Summary"
+            echo
+            echo "| Phase | Result |"
+            echo "|---|---|"
+            echo "| Phase 1 - Lint and validate | ${PHASE1} |"
+            echo "| Phase 2 - Unit testing | ${PHASE2} |"
+            echo "| Phase 3 - Integration testing | ${PHASE3} |"
+            echo "| Phase 4 - E2E (Playwright) | ${PHASE4} |"
+            echo "| Phase 5 - Test and build Docker | ${PHASE5} |"
+            echo "| Phase 6 - Security scan | ${PHASE6} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          for status in "$PHASE1" "$PHASE2" "$PHASE3" "$PHASE4" "$PHASE5" "$PHASE6"; do
+            if [ "$status" != "success" ]; then
+              echo "One or more phases failed."
+              exit 1
+            fi
+          done
