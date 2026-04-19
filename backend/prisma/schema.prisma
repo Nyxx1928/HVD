@@ -1,0 +1,48 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model LoveNote {
+  id         String    @id @default(uuid()) @db.Uuid
+  name       String    @db.VarChar(36)
+  message    String    @db.VarChar(240)
+  emoji      String    @default("💗") @db.VarChar(10)
+  color      String    @default("rose") @db.VarChar(20)
+  created_at DateTime  @default(now()) @db.Timestamptz
+  comments   Comment[]
+
+  @@index([created_at(sort: Desc)])
+  @@map("love_notes")
+}
+
+model Comment {
+  id         String   @id @default(uuid()) @db.Uuid
+  note_id    String   @db.Uuid
+  name       String   @db.VarChar(36)
+  comment    String   @db.VarChar(200)
+  created_at DateTime @default(now()) @db.Timestamptz
+  note       LoveNote @relation(fields: [note_id], references: [id], onDelete: Cascade)
+
+  @@index([note_id])
+  @@index([created_at])
+  @@map("comments")
+}
+
+model RateLimit {
+  id       String   @id @default(uuid()) @db.Uuid
+  ip       String   @unique @db.VarChar(45)
+  count    Int      @default(0)
+  reset_at DateTime @db.Timestamptz
+
+  @@index([ip])
+  @@index([reset_at])
+  @@map("rate_limits")
+}
