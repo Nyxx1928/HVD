@@ -23,9 +23,7 @@ export class LoveNotesService {
         },
       });
     } catch (error) {
-      throw new InternalServerErrorException(
-        'Failed to retrieve love notes',
-      );
+      throw new InternalServerErrorException('Failed to retrieve love notes');
     }
   }
 
@@ -48,9 +46,7 @@ export class LoveNotesService {
         },
       });
     } catch (error) {
-      throw new InternalServerErrorException(
-        'Failed to create love note',
-      );
+      throw new InternalServerErrorException('Failed to create love note');
     }
   }
 }

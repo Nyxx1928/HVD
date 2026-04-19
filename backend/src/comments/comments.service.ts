@@ -61,9 +61,7 @@ export class CommentsService {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2003'
       ) {
-        throw new NotFoundException(
-          `Love note with ID ${noteId} not found`,
-        );
+        throw new NotFoundException(`Love note with ID ${noteId} not found`);
       }
       throw new InternalServerErrorException('Failed to create comment');
     }
