@@ -1,121 +1,63 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-const rateLimitWindowMs = 60_000;
-const rateLimitMaxRequests = 10;
-
-const getSupabaseClient = () => {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return null;
-  }
-
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    auth: { persistSession: false }
-  });
-};
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = getSupabaseClient();
-  if (!supabase) {
+
+  if (!API_URL) {
     return NextResponse.json(
-      { error: 'Supabase environment variables are missing.' },
+      { error: 'API URL is not configured.' },
       { status: 500 }
     );
   }
 
-  const noteId = id;
+  try {
+    const response = await fetch(`${API_URL}/love-notes/${id}/comments`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
-  const { data, error } = await supabase
-    .from('love_wall_comments')
-    .select('id,name,comment,created_at')
-    .eq('note_id', noteId)
-    .order('created_at', { ascending: true })
-    .limit(50);
+    if (!response.ok) {
+      const errorPayload = await response.json().catch(() => ({
+        error: 'Failed to fetch comments',
+      }));
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+      // Handle 404 for invalid note ID
+      if (response.status === 404) {
+        return NextResponse.json(
+          { error: errorPayload.error || 'Love note not found' },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json(
+        { error: errorPayload.error || 'Failed to fetch comments' },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    return NextResponse.json({ data });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Network error while fetching comments' },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json({ data });
 }
+
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const noteId = id;
-  const clientIp =
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip') ||
-    'unknown';
 
-  const supabase = getSupabaseClient();
-  if (!supabase) {
+  if (!API_URL) {
     return NextResponse.json(
-      { error: 'Supabase environment variables are missing.' },
+      { error: 'API URL is not configured.' },
       { status: 500 }
     );
-  }
-
-  const now = Date.now();
-
-  const { data: rateData, error: rateError } = await supabase
-    .from('love_wall_rate_limits')
-    .select('ip,count,reset_at')
-    .eq('ip', clientIp)
-    .maybeSingle();
-
-  if (rateError) {
-    return NextResponse.json({ error: rateError.message }, { status: 500 });
-  }
-
-  if (!rateData) {
-    const { error: insertError } = await supabase.from('love_wall_rate_limits').insert({
-      ip: clientIp,
-      count: 1,
-      reset_at: new Date(now + rateLimitWindowMs).toISOString()
-    });
-
-    if (insertError) {
-      return NextResponse.json({ error: insertError.message }, { status: 500 });
-    }
-  } else {
-    const resetAt = new Date(rateData.reset_at).getTime();
-    if (Number.isNaN(resetAt) || now > resetAt) {
-      const { error: resetError } = await supabase
-        .from('love_wall_rate_limits')
-        .update({
-          count: 1,
-          reset_at: new Date(now + rateLimitWindowMs).toISOString()
-        })
-        .eq('ip', clientIp);
-
-      if (resetError) {
-        return NextResponse.json({ error: resetError.message }, { status: 500 });
-      }
-    } else if (rateData.count >= rateLimitMaxRequests) {
-      const retryAfterSeconds = Math.ceil((resetAt - now) / 1000);
-      return NextResponse.json(
-        {
-          error: `Too many comments. Try again in ${retryAfterSeconds}s.`
-        },
-        {
-          status: 429,
-          headers: { 'Retry-After': retryAfterSeconds.toString() }
-        }
-      );
-    } else {
-      const { error: bumpError } = await supabase
-        .from('love_wall_rate_limits')
-        .update({ count: rateData.count + 1 })
-        .eq('ip', clientIp);
-
-      if (bumpError) {
-        return NextResponse.json({ error: bumpError.message }, { status: 500 });
-      }
-    }
   }
 
   let payload: {
@@ -129,36 +71,59 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Invalid JSON payload.' }, { status: 400 });
   }
 
-  const name = payload.name?.trim();
-  const comment = payload.comment?.trim();
+  try {
+    const response = await fetch(`${API_URL}/love-notes/${id}/comments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Forward IP headers for rate limiting
+        ...(request.headers.get('x-forwarded-for') && {
+          'x-forwarded-for': request.headers.get('x-forwarded-for')!,
+        }),
+        ...(request.headers.get('x-real-ip') && {
+          'x-real-ip': request.headers.get('x-real-ip')!,
+        }),
+      },
+      body: JSON.stringify(payload),
+    });
 
-  if (!name || !comment) {
+    if (!response.ok) {
+      const errorPayload = await response.json().catch(() => ({
+        error: 'Failed to create comment',
+      }));
+
+      // Handle 404 for invalid note ID
+      if (response.status === 404) {
+        return NextResponse.json(
+          { error: errorPayload.error || 'Love note not found' },
+          { status: 404 }
+        );
+      }
+
+      // Handle rate limiting with Retry-After header
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After');
+        return NextResponse.json(
+          { error: errorPayload.error || 'Too many comments. Please try again later.' },
+          {
+            status: 429,
+            headers: retryAfter ? { 'Retry-After': retryAfter } : {},
+          }
+        );
+      }
+
+      return NextResponse.json(
+        { error: errorPayload.error || 'Failed to create comment' },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    return NextResponse.json({ data }, { status: 201 });
+  } catch (error) {
     return NextResponse.json(
-      { error: 'Name and comment are required.' },
-      { status: 400 }
+      { error: 'Network error while creating comment' },
+      { status: 500 }
     );
   }
-
-  if (name.length > 36 || comment.length > 200) {
-    return NextResponse.json(
-      { error: 'Comment is too long.' },
-      { status: 400 }
-    );
-  }
-
-  const { data, error } = await supabase
-    .from('love_wall_comments')
-    .insert({
-      note_id: noteId,
-      name,
-      comment
-    })
-    .select('id,name,comment,created_at')
-    .single();
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ data }, { status: 201 });
 }
