@@ -727,7 +727,17 @@ const Ballpit = ({ className = '', followCursor = true, ...props }) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    spheresInstanceRef.current = createBallpit(canvas, { followCursor, ...props });
+    const webglContext = canvas.getContext('webgl2') || canvas.getContext('webgl');
+    if (!webglContext) {
+      return;
+    }
+
+    try {
+      spheresInstanceRef.current = createBallpit(canvas, { followCursor, ...props });
+    } catch (error) {
+      console.warn('Ballpit disabled: WebGL unavailable.', error);
+      return;
+    }
 
     return () => {
       if (spheresInstanceRef.current) {
