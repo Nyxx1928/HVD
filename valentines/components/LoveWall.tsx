@@ -141,6 +141,7 @@ export default function LoveWall() {
   return (
     <section
       id="love-wall"
+      data-testid="love-wall"
       className="relative overflow-hidden bg-[#fbf7fb] px-6 py-24 text-zinc-900 dark:bg-[#0f0a14] dark:text-zinc-50"
     >
       <div className="pointer-events-none absolute inset-0">

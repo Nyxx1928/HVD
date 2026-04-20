@@ -1,147 +1,177 @@
-# Valentine's Day Love Wall 💗
+# Valentine's Love Wall
 
-A beautiful, interactive Valentine's Day web app where users can post love notes and leave comments. Built with Next.js, Framer Motion, Three.js, and Supabase.
+[![CI](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/ci.yml)
 
-## Features
-
-- 🎨 Animated hero section with interactive 3D ball pit
-- 💌 Post love notes with custom emojis and colors
-- 💬 Comment on love notes
-- 📱 Fully responsive and mobile-friendly
-- ✨ Smooth animations and transitions
-- 🌙 Dark mode support
-
-## Setup Instructions
-
-### 1. Clone the Repository
-
-```bash
-git clone <your-repo-url>
-cd valentines
-```
-
-### 2. Install Dependencies
-
-```bash
-npm install
-```
-
-### 3. Set Up Supabase
-
-1. Create a free account at [supabase.com](https://supabase.com)
-2. Create a new project
-3. In your project dashboard, go to **Settings** → **API**
-4. Copy your **Project URL** and **anon/public key**
-
-### 4. Create Database Tables
-
-Run these SQL commands in your Supabase SQL Editor:
-
-```sql
--- Create love_notes table
-CREATE TABLE love_notes (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  name TEXT NOT NULL,
-  message TEXT NOT NULL,
-  emoji TEXT NOT NULL,
-  color TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Create comments table
-CREATE TABLE comments (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  note_id UUID REFERENCES love_notes(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  comment TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Enable Row Level Security
-ALTER TABLE love_notes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
-
--- Allow public read access
-CREATE POLICY "Enable read access for all users" ON love_notes
-  FOR SELECT USING (true);
-
-CREATE POLICY "Enable read access for all users" ON comments
-  FOR SELECT USING (true);
-
--- Allow public insert access
-CREATE POLICY "Enable insert access for all users" ON love_notes
-  FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Enable insert access for all users" ON comments
-  FOR INSERT WITH CHECK (true);
-```
-
-### 5. Configure Environment Variables
-
-1. Copy the example environment file:
-
-   ```bash
-   cp .env.example .env.local
-   ```
-
-2. Edit `.env.local` and add your Supabase credentials:
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
-
-### 6. Run the Development Server
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) to see the app in action.
+A full-stack application for sharing love notes and messages, built with NestJS backend and Next.js frontend.
 
 ## Project Structure
 
 ```
-valentines/
-├── app/
-│   ├── api/
-│   │   └── love-wall/          # API routes for notes and comments
-│   ├── globals.css             # Global styles
-│   ├── layout.tsx              # Root layout
-│   └── page.tsx                # Home page
-├── components/
-│   ├── Ballpit.jsx             # 3D interactive ball pit
-│   ├── HeroSection.tsx         # Hero section
-│   ├── LoveWall.tsx            # Love wall with notes
-│   ├── NoteComments.tsx        # Comment system
-│   └── Squares.jsx             # Animated background
-└── lib/
-    └── utils.ts                # Utility functions
+.
+├── backend/          # NestJS API server
+├── valentines/       # Next.js frontend application
+├── docker-compose.yml
+└── .github/workflows/ci.yml
 ```
 
-## Technologies Used
+## Quick Start
 
-- **Next.js 15** - React framework
-- **TypeScript** - Type safety
-- **Tailwind CSS** - Styling
-- **Framer Motion** - Animations
-- **Three.js** - 3D graphics
-- **Supabase** - Backend & database
+**New to the project?** Check out the [Quick Start Guide](./QUICK_START.md) for the fastest way to get up and running!
 
-## Security Notes
+### Local Development
 
-- ⚠️ **Never commit `.env.local`** - it contains your Supabase credentials
-- ✅ The `.gitignore` already excludes `.env*` files
-- ✅ Use `.env.example` as a template for others
-- ✅ Each person who forks/clones must create their own Supabase project
+#### Prerequisites
+- Node.js 20+
+- PostgreSQL 16
+- npm
 
-## Deploy on Vercel
+#### Backend Setup
+```bash
+cd backend
+npm install
+cp .env.example .env
+# Update DATABASE_URL in .env
+npx prisma migrate deploy
+npm run start:dev
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+#### Frontend Setup
+```bash
+cd valentines
+npm install
+cp .env.example .env.local
+# Update NEXT_PUBLIC_API_URL in .env.local
+npm run dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Docker Setup
+
+See [DOCKER.md](./DOCKER.md) for detailed Docker instructions.
+
+```bash
+# Start all services
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Stop services
+docker compose down
+```
+
+## Features
+
+- 💌 Create and share love notes
+- 💬 Comment on love notes
+- 🎨 Customizable note colors and emojis
+- 🔒 Rate limiting for API protection
+- 🐳 Docker support
+- 🧪 Comprehensive testing (Unit, Integration, E2E)
+- 🔐 Security scanning and SBOM generation
+
+## Tech Stack
+
+### Backend
+- NestJS
+- Prisma ORM
+- PostgreSQL
+- TypeScript
+- Jest
+
+### Frontend
+- Next.js 16
+- React 19
+- TypeScript
+- Tailwind CSS
+- Framer Motion
+- Three.js
+
+### DevOps
+- Docker & Docker Compose
+- GitHub Actions CI/CD
+- Playwright (E2E testing)
+- Trivy (Security scanning)
+- Cosign (Artifact signing)
+
+## Documentation
+
+- [CI/CD Pipeline](./CI.md) - Comprehensive CI/CD documentation
+- [Docker Setup](./DOCKER.md) - Docker deployment guide
+- [Backend README](./backend/README.md) - Backend-specific documentation
+- [Frontend README](./valentines/README.md) - Frontend-specific documentation
+
+## Development
+
+### Running Tests
+
+```bash
+# Backend unit tests
+cd backend && npm test
+
+# Backend integration tests
+cd backend && npm run test:e2e
+
+# Frontend E2E tests
+cd valentines && npm run test:e2e
+```
+
+### Linting
+
+```bash
+# Backend
+cd backend && npm run lint
+
+# Frontend
+cd valentines && npm run lint
+```
+
+### Type Checking
+
+```bash
+# Backend
+cd backend && npx tsc --noEmit
+
+# Frontend
+cd valentines && npx tsc --noEmit
+```
+
+## CI/CD Pipeline
+
+The project uses a 7-phase CI/CD pipeline:
+
+1. **Lint, Validate, and Sanitize** - Code quality and security checks
+2. **Unit Testing** - Component-level tests
+3. **Integration Testing** - API endpoint tests with database
+4. **E2E Testing (Playwright)** - Full application flow tests
+5. **Test and Build Docker** - Container image validation
+6. **Security Scan** - Vulnerability scanning and SBOM generation
+7. **CI Summary** - Results aggregation
+
+See [CI.md](./CI.md) for detailed pipeline documentation.
+
+## Security
+
+- Automated security scanning with Trivy
+- SBOM generation with Syft
+- Artifact signing with Cosign
+- Input sanitization checks
+- Rate limiting on API endpoints
+- SQL injection prevention with Prisma
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests and linting
+5. Submit a pull request
+
+All PRs must pass the CI pipeline before merging.
+
+## License
+
+MIT
+
+## Support
+
+For issues and questions, please open a GitHub issue.
