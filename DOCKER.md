@@ -2,6 +2,8 @@
 
 This project includes Docker configuration for easy deployment and development.
 
+> **For Production Deployment:** See [backend/DEPLOYMENT.md](./backend/DEPLOYMENT.md) for comprehensive production deployment instructions including SSL/TLS setup, monitoring, backups, and security best practices.
+
 ## Prerequisites
 
 - Docker
@@ -105,3 +107,14 @@ For production deployment:
 4. Set up SSL/TLS certificates
 5. Configure database backups
 6. Set resource limits in docker-compose.yml
+
+**For detailed production deployment instructions, see [backend/DEPLOYMENT.md](./backend/DEPLOYMENT.md)**
+
+This comprehensive guide covers:
+- Step-by-step Docker deployment to production servers
+- SSL/TLS setup with Nginx or Traefik
+- Environment variable configuration and security
+- Health checks and monitoring setup (Prometheus, Grafana, uptime monitoring)
+- Automated backup and restore procedures
+- Security best practices and hardening
+- Troubleshooting common deployment issues

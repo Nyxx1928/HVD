@@ -16,7 +16,7 @@ This implementation plan converts the Valentine's Love Wall application from a S
   - Configure CORS to allow requests from frontend
   - _Requirements: 1.1, 1.2, 1.3, 1.5_
 
-- [ ] 2. Set up Prisma and database schema
+- [x] 2. Set up Prisma and database schema
   - [x] 2.1 Initialize Prisma and create schema
     - Run `npx prisma init`
     - Define LoveNote model with fields: id (UUID), name, message, emoji, color, created_at
@@ -34,7 +34,7 @@ This implementation plan converts the Valentine's Love Wall application from a S
     - Export PrismaService as global module
     - _Requirements: 1.2, 2.8_
 
-- [ ] 3. Implement Love Notes module
+- [x] 3. Implement Love Notes module
   - [x] 3.1 Create Love Notes DTOs and entities
     - Create src/love-notes/dto/create-love-note.dto.ts
     - Add validation decorators: @IsString, @IsNotEmpty, @MaxLength(36) for name
@@ -73,7 +73,7 @@ This implementation plan converts the Valentine's Love Wall application from a S
     - Test create() handles database errors appropriately
     - _Requirements: 3.1, 3.2, 3.6_
 
-- [ ] 4. Implement Comments module
+- [x] 4. Implement Comments module
   - [x] 4.1 Create Comments DTOs and entities
     - Create src/comments/dto/create-comment.dto.ts
     - Add validation decorators: @IsString, @IsNotEmpty, @MaxLength(36) for name
@@ -112,7 +112,7 @@ This implementation plan converts the Valentine's Love Wall application from a S
     - Test create() throws NotFoundException for invalid note_id
     - _Requirements: 4.1, 4.2, 4.6_
 
-- [ ] 5. Implement database-backed rate limiting
+- [x] 5. Implement database-backed rate limiting
   - [x] 5.1 Create Rate Limit service
     - Create src/rate-limit/rate-limit.service.ts
     - Implement checkRateLimit(ip, maxRequests, windowMs): check count and reset_at
@@ -146,8 +146,8 @@ This implementation plan converts the Valentine's Love Wall application from a S
     - Test cleanupExpiredLimits() removes old records
     - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 6. Implement error handling and logging
-  - [~] 6.1 Create HTTP exception filter
+- [x] 6. Implement error handling and logging
+  - [x] 6.1 Create HTTP exception filter
     - Create src/common/filters/http-exception.filter.ts
     - Implement @Catch(HttpException) decorator
     - Format error response: { error, statusCode, timestamp, path }
@@ -155,7 +155,7 @@ This implementation plan converts the Valentine's Love Wall application from a S
     - Register filter globally in main.ts
     - _Requirements: 1.7, 6.4_
   
-  - [~] 6.2 Create logging interceptor
+  - [x] 6.2 Create logging interceptor
     - Create src/common/interceptors/logging.interceptor.ts
     - Log all incoming requests with method, path, IP, timestamp
     - Log response status and duration
@@ -163,14 +163,14 @@ This implementation plan converts the Valentine's Love Wall application from a S
     - Register interceptor globally in main.ts
     - _Requirements: 9.5_
   
-  - [~] 6.3 Add health check endpoint
+  - [x] 6.3 Add health check endpoint
     - Create src/health/health.controller.ts
     - Implement GET /health endpoint
     - Return { status: 'ok', timestamp, database: 'connected' }
     - Test database connection using Prisma.$queryRaw
     - _Requirements: 9.4_
 
-- [~] 7. Checkpoint - Backend API complete
+- [x] 7. Checkpoint - Backend API complete
   - Run `npm run build` to verify TypeScript compilation
   - Start backend with `npm run start:dev`
   - Test GET /love-notes returns empty array
@@ -178,15 +178,15 @@ This implementation plan converts the Valentine's Love Wall application from a S
   - Test GET /health returns 200
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 8. Update frontend to use NestJS API
-  - [~] 8.1 Remove Supabase dependencies
+- [x] 8. Update frontend to use NestJS API
+  - [x] 8.1 Remove Supabase dependencies
     - Remove @supabase/supabase-js from valentines/package.json
     - Run `npm install` to update lock file
     - Update valentines/.env.example to document NEXT_PUBLIC_API_URL
     - Create valentines/.env.local with NEXT_PUBLIC_API_URL=http://localhost:3001
     - _Requirements: 7.5, 7.6_
   
-  - [~] 8.2 Update Love Wall API route
+  - [x] 8.2 Update Love Wall API route
     - Modify valentines/app/api/love-wall/route.ts
     - Replace Supabase client with fetch to ${NEXT_PUBLIC_API_URL}/love-notes
     - Handle GET request: fetch and return notes
@@ -195,7 +195,7 @@ This implementation plan converts the Valentine's Love Wall application from a S
     - Return appropriate status codes and error messages
     - _Requirements: 7.1, 7.2, 7.3_
   
-  - [~] 8.3 Update Comments API route
+  - [x] 8.3 Update Comments API route
     - Modify valentines/app/api/love-wall/[id]/comments/route.ts
     - Replace Supabase client with fetch to ${NEXT_PUBLIC_API_URL}/love-notes/:id/comments
     - Handle GET request: fetch and return comments
@@ -203,15 +203,15 @@ This implementation plan converts the Valentine's Love Wall application from a S
     - Implement error handling for 404 (invalid note ID) and 429 (rate limit)
     - _Requirements: 7.1, 7.2, 7.3_
   
-  - [~] 8.4 Update frontend components
+  - [x] 8.4 Update frontend components
     - Modify valentines/components/LoveWall.tsx to handle new error format
     - Modify valentines/components/NoteComments.tsx to handle new error format
     - Update error messages to display payload.error from API responses
     - Ensure UI remains unchanged (same user experience)
     - _Requirements: 7.3, 7.4_
 
-- [ ] 9. Create data migration script
-  - [~] 9.1 Implement migration script
+- [x] 9. Create data migration script
+  - [x] 9.1 Implement migration script
     - Create backend/scripts/migrate-from-supabase.ts
     - Install @supabase/supabase-js as dev dependency for migration
     - Implement exportLoveNotes(): fetch all from Supabase love_wall table
@@ -221,7 +221,7 @@ This implementation plan converts the Valentine's Love Wall application from a S
     - Save exports to JSON files as backup
     - _Requirements: 8.1, 8.2, 8.3, 8.4_
   
-  - [~] 9.2 Add migration validation and idempotency
+  - [x] 9.2 Add migration validation and idempotency
     - Check if migration already ran (count existing records)
     - Implement validateMigration(): compare record counts between Supabase and PostgreSQL
     - Verify random sample of records match
@@ -230,14 +230,14 @@ This implementation plan converts the Valentine's Love Wall application from a S
     - Add logging for migration progress and errors
     - _Requirements: 8.5, 8.6, 8.7_
   
-  - [~] 9.3 Add migration npm script
+  - [x] 9.3 Add migration npm script
     - Add "migrate:from-supabase" script to backend/package.json
     - Document migration command in backend/README.md
     - Include environment variables needed: SUPABASE_URL, SUPABASE_KEY, DATABASE_URL
     - _Requirements: 8.6_
 
-- [ ] 10. Create Docker deployment configuration
-  - [~] 10.1 Create Dockerfile for backend
+- [x] 10. Create Docker deployment configuration
+  - [x] 10.1 Create Dockerfile for backend
     - Create backend/Dockerfile with multi-stage build
     - Stage 1: Install dependencies and build TypeScript
     - Stage 2: Copy built files and run prisma generate
@@ -245,7 +245,7 @@ This implementation plan converts the Valentine's Love Wall application from a S
     - Expose port 3001
     - _Requirements: 9.1_
   
-  - [~] 10.2 Create docker-compose.yml
+  - [x] 10.2 Create docker-compose.yml
     - Create backend/docker-compose.yml
     - Define postgres service: PostgreSQL 16-alpine with persistent volume
     - Define backend service: build from Dockerfile, depends on postgres
@@ -254,7 +254,7 @@ This implementation plan converts the Valentine's Love Wall application from a S
     - Configure restart policy: unless-stopped
     - _Requirements: 9.1, 9.2, 9.3, 9.7_
   
-  - [~] 10.3 Create environment configuration files
+  - [x] 10.3 Create environment configuration files
     - Create backend/.env.example with all required variables documented
     - Document: DATABASE_URL, PORT, NODE_ENV, CORS_ORIGIN
     - Document rate limit configuration: RATE_LIMIT_NOTES_MAX, RATE_LIMIT_NOTES_WINDOW_MS
@@ -302,8 +302,8 @@ This implementation plan converts the Valentine's Love Wall application from a S
     - Test database connection errors return 500
     - _Requirements: 1.7, 6.4, 6.6_
 
-- [ ] 12. Create comprehensive documentation
-  - [~] 12.1 Write backend README.md
+- [x] 12. Create comprehensive documentation
+  - [x] 12.1 Write backend README.md
     - Add project overview and technology stack
     - Document prerequisites: Node.js 20+, Docker, PostgreSQL
     - Write local development setup instructions
@@ -312,7 +312,7 @@ This implementation plan converts the Valentine's Love Wall application from a S
     - Document testing commands: npm run test, npm run test:e2e
     - _Requirements: 10.1, 10.3, 10.4_
   
-  - [~] 12.2 Document API endpoints
+  - [x] 12.2 Document API endpoints
     - Document GET /love-notes with request/response examples
     - Document POST /love-notes with validation rules and examples
     - Document GET /love-notes/:id/comments with examples
@@ -322,7 +322,7 @@ This implementation plan converts the Valentine's Love Wall application from a S
     - Include rate limit information for each endpoint
     - _Requirements: 10.2_
   
-  - [~] 12.3 Document deployment process
+  - [x] 12.3 Document deployment process
     - Write step-by-step Docker deployment instructions
     - Document production environment variable configuration
     - Document SSL/TLS setup recommendations
@@ -330,7 +330,7 @@ This implementation plan converts the Valentine's Love Wall application from a S
     - Document backup and restore procedures
     - _Requirements: 10.6_
   
-  - [~] 12.4 Document data migration process
+  - [x] 12.4 Document data migration process
     - Write step-by-step migration instructions
     - Document required environment variables for migration
     - Document validation steps to verify migration success
@@ -338,7 +338,7 @@ This implementation plan converts the Valentine's Love Wall application from a S
     - Include troubleshooting tips
     - _Requirements: 10.5_
 
-- [~] 13. Final checkpoint - Complete system validation
+- [x] 13. Final checkpoint - Complete system validation
   - Start backend with Docker Compose: `docker-compose up -d`
   - Verify health check endpoint returns 200
   - Start frontend: `cd valentines && npm run dev`
