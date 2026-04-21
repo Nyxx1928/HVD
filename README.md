@@ -95,9 +95,12 @@ docker compose down
 
 ## Documentation
 
+- [Quick Start Guide](./QUICK_START.md) - Fastest way to get started
 - [CI/CD Pipeline](./CI.md) - Comprehensive CI/CD documentation
 - [Docker Setup](./DOCKER.md) - Docker deployment guide
+- [Production Deployment](./backend/DEPLOYMENT.md) - Complete production deployment guide
 - [Backend README](./backend/README.md) - Backend-specific documentation
+- [Backend API Reference](./backend/API.md) - API endpoints and usage
 - [Frontend README](./valentines/README.md) - Frontend-specific documentation
 
 ## Development

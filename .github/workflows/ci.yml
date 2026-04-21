@@ -247,9 +247,16 @@ jobs:
         working-directory: backend
         run: npx prisma migrate deploy
 
+      - name: Generate Prisma client
+        working-directory: backend
+        run: npx prisma generate
+
       - name: Build backend
         working-directory: backend
         run: npm run build
+
+      - name: Verify backend build output
+        run: test -f backend/dist/src/main.js || (echo "Build failed - dist/src/main.js not found"; ls -la backend/dist/ 2>/dev/null || echo "dist/ does not exist"; exit 1)
 
       - name: Build frontend
         working-directory: valentines
@@ -258,9 +265,14 @@ jobs:
       - name: Start backend server
         working-directory: backend
         run: |
-          npm run start:prod &
+          node dist/src/main > backend.log 2>&1 &
           echo $! > backend.pid
-          sleep 5
+          sleep 10
+          if ! kill -0 $(cat backend.pid) 2>/dev/null; then
+            echo "Backend process died immediately. Logs:"
+            cat backend.log
+            exit 1
+          fi
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/valentines_e2e
           PORT: 3001
@@ -277,11 +289,13 @@ jobs:
       - name: Wait for servers to be ready
         run: |
           echo "Waiting for backend..."
-          timeout 30 bash -c 'until curl -f http://localhost:3001 > /dev/null 2>&1; do sleep 1; done'
+          timeout 60 bash -c 'until curl -sf http://localhost:3001/health > /dev/null 2>&1; do sleep 2; done' || \
+            (echo "Backend failed to start. Logs:"; cat backend/backend.log 2>/dev/null || true; curl -v http://localhost:3001/health 2>&1 || true; exit 1)
           echo "Backend is ready!"
-          
+
           echo "Waiting for frontend..."
-          timeout 30 bash -c 'until curl -f http://localhost:3000 > /dev/null 2>&1; do sleep 1; done'
+          timeout 60 bash -c 'until curl -sf http://localhost:3000 > /dev/null 2>&1; do sleep 2; done' || \
+            (echo "Frontend failed to start. Last response:"; curl -v http://localhost:3000 2>&1 || true; exit 1)
           echo "Frontend is ready!"
 
       - name: Run Playwright tests

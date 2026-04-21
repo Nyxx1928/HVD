@@ -5,9 +5,16 @@ import { PrismaModule } from './prisma/prisma.module';
 import { LoveNotesModule } from './love-notes/love-notes.module';
 import { CommentsModule } from './comments/comments.module';
 import { RateLimitModule } from './rate-limit/rate-limit.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
-  imports: [PrismaModule, LoveNotesModule, CommentsModule, RateLimitModule],
+  imports: [
+    PrismaModule,
+    LoveNotesModule,
+    CommentsModule,
+    RateLimitModule,
+    HealthModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
