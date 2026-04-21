@@ -256,7 +256,7 @@ jobs:
         run: npm run build
 
       - name: Verify backend build output
-        run: test -f backend/dist/main.js || (echo "Build failed - dist/main.js not found"; ls -la backend/dist/ 2>/dev/null || echo "dist/ does not exist"; exit 1)
+        run: test -f backend/dist/src/main.js || (echo "Build failed - dist/src/main.js not found"; ls -la backend/dist/ 2>/dev/null || echo "dist/ does not exist"; exit 1)
 
       - name: Build frontend
         working-directory: valentines
@@ -265,7 +265,7 @@ jobs:
       - name: Start backend server
         working-directory: backend
         run: |
-          node dist/main > backend.log 2>&1 &
+          node dist/src/main > backend.log 2>&1 &
           echo $! > backend.pid
           sleep 10
           if ! kill -0 $(cat backend.pid) 2>/dev/null; then
