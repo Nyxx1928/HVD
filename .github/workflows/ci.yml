@@ -247,6 +247,10 @@ jobs:
         working-directory: backend
         run: npx prisma migrate deploy
 
+      - name: Generate Prisma client
+        working-directory: backend
+        run: npx prisma generate
+
       - name: Build backend
         working-directory: backend
         run: npm run build
@@ -258,9 +262,14 @@ jobs:
       - name: Start backend server
         working-directory: backend
         run: |
-          npm run start:prod &
+          npm run start:prod > backend.log 2>&1 &
           echo $! > backend.pid
           sleep 10
+          if ! kill -0 $(cat backend.pid) 2>/dev/null; then
+            echo "Backend process died immediately. Logs:"
+            cat backend.log
+            exit 1
+          fi
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/valentines_e2e
           PORT: 3001
