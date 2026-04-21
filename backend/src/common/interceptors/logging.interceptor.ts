@@ -19,7 +19,6 @@ export class LoggingInterceptor implements NestInterceptor {
     const response = ctx.getResponse<Response>();
 
     const { method, url, ip } = request;
-    const userAgent = request.get('user-agent') || '';
     const timestamp = new Date().toISOString();
 
     // Extract IP from headers (for proxy/load balancer scenarios)
