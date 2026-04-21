@@ -255,6 +255,9 @@ jobs:
         working-directory: backend
         run: npm run build
 
+      - name: Verify backend build output
+        run: test -f backend/dist/main.js || (echo "Build failed - dist/main.js not found"; ls -la backend/dist/ 2>/dev/null || echo "dist/ does not exist"; exit 1)
+
       - name: Build frontend
         working-directory: valentines
         run: npm run build
@@ -262,7 +265,7 @@ jobs:
       - name: Start backend server
         working-directory: backend
         run: |
-          npm run start:prod > backend.log 2>&1 &
+          node dist/main > backend.log 2>&1 &
           echo $! > backend.pid
           sleep 10
           if ! kill -0 $(cat backend.pid) 2>/dev/null; then
@@ -287,7 +290,7 @@ jobs:
         run: |
           echo "Waiting for backend..."
           timeout 60 bash -c 'until curl -sf http://localhost:3001/health > /dev/null 2>&1; do sleep 2; done' || \
-            (echo "Backend failed to start. Last response:"; curl -v http://localhost:3001/health 2>&1 || true; exit 1)
+            (echo "Backend failed to start. Logs:"; cat backend/backend.log 2>/dev/null || true; curl -v http://localhost:3001/health 2>&1 || true; exit 1)
           echo "Backend is ready!"
 
           echo "Waiting for frontend..."
