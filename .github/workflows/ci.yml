@@ -260,7 +260,7 @@ jobs:
         run: |
           npm run start:prod &
           echo $! > backend.pid
-          sleep 5
+          sleep 10
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/valentines_e2e
           PORT: 3001
@@ -277,11 +277,13 @@ jobs:
       - name: Wait for servers to be ready
         run: |
           echo "Waiting for backend..."
-          timeout 30 bash -c 'until curl -f http://localhost:3001 > /dev/null 2>&1; do sleep 1; done'
+          timeout 60 bash -c 'until curl -sf http://localhost:3001/health > /dev/null 2>&1; do sleep 2; done' || \
+            (echo "Backend failed to start. Last response:"; curl -v http://localhost:3001/health 2>&1 || true; exit 1)
           echo "Backend is ready!"
-          
+
           echo "Waiting for frontend..."
-          timeout 30 bash -c 'until curl -f http://localhost:3000 > /dev/null 2>&1; do sleep 1; done'
+          timeout 60 bash -c 'until curl -sf http://localhost:3000 > /dev/null 2>&1; do sleep 2; done' || \
+            (echo "Frontend failed to start. Last response:"; curl -v http://localhost:3000 2>&1 || true; exit 1)
           echo "Frontend is ready!"
 
       - name: Run Playwright tests
